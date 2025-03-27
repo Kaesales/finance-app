@@ -1,8 +1,8 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from ..models.user_model import User
-from ..schemas.user_schema import UserCreate
-from ..utils.auth import get_hash_password
+from app.models.user_model import User
+from app.schemas.user_schema import UserCreate
+from app.utils.auth import get_hash_password
 
 class UserRepository:
     def __init__(self, db: AsyncSession):

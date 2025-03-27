@@ -9,8 +9,9 @@ import sys
 sys.path.append(os.getcwd())
 
 # Importe sua Base e seus modelos
-from app.models.user_model import Base  # Substitua pelo caminho correto
-
+from app.models.base import Base
+from app.models.user_model import User
+from app.models.account_model import Account
 # Configurações do Alembic
 config = context.config
 

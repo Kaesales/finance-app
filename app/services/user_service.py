@@ -1,6 +1,6 @@
-from ..repositories.user_repository import UserRepository
-from ..schemas.user_schema import UserCreate, UserResponse
-from ..utils.auth import verify_password, get_hash_password
+from app.repositories.user_repository import UserRepository
+from app.schemas.user_schema import UserCreate, UserResponse
+from app.utils.auth import verify_password, get_hash_password
 from fastapi import HTTPException
 from fastapi import status
 
@@ -10,6 +10,7 @@ class UserService:
 
     async def create_user(self, user: UserCreate):
         """Cria um novo usuário"""
+        
        # Verifica se username já existe
         existing_username = await self.user_repository.get_user_by_username(user.username)
         if existing_username:

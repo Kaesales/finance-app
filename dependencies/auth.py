@@ -1,31 +1,66 @@
-# dependencies/auth.py
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
-from app.services.user_service import UserService
-from app.utils.auth import SECRET_KEY, ALGORITHM  # Configs ficam em utils/auth.py
-from dependencies.user import get_user_service
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.repositories.user_repository import UserRepository
+from app.models.user_model import User
+from app.utils.auth import SECRET_KEY, ALGORITHM
+from database.database import async_session  # Importe a sessão diretamente
+from typing import Optional
+import logging
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+# Configuração básica de logging
+logger = logging.getLogger(__name__)
 
-async def get_current_user(
-    token: str = Depends(oauth2_scheme),
-    user_service: UserService = Depends(get_user_service)
-):
+# OAuth2 com configurações seguras
+oauth2_scheme = OAuth2PasswordBearer(
+    tokenUrl="token",
+    auto_error=True
+)
+
+async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
+    """
+    Versão simplificada e segura sem get_async_session.
+    - Valida o token JWT
+    - Busca o usuário no banco
+    - Trata erros específicos
+    """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
+        detail="Credenciais inválidas ou expiradas",
         headers={"WWW-Authenticate": "Bearer"},
     )
+
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        # 1. Decodifica o token (valida estrutura e assinatura)
+        payload = jwt.decode(
+            token,
+            SECRET_KEY,
+            algorithms=[ALGORITHM],
+            options={"require": ["exp", "sub"]}  # Campos obrigatórios
+        )
         username: str = payload.get("sub")
-        if username is None:
+        if not username:
             raise credentials_exception
-    except JWTError:
+
+        # 2. Busca o usuário (com sessão direta)
+        async with async_session() as session:
+            repo = UserRepository(session)
+            user = await repo.get_user_by_username(username)
+            
+            if not user:
+                raise credentials_exception
+
+            logger.info('Esta é uma mensagem informativa')
+            return user
+            
+    except JWTError as e:
+        logger.warning(f"Token inválido: {e}")
         raise credentials_exception
+    except Exception as e:
+        logger.error(f"Erro inesperado: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro interno ao validar credenciais"
+        )
     
-    user = await user_service.get_user_by_username(username)
-    if user is None:
-        raise credentials_exception
-    return user

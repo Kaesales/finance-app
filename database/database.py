@@ -16,6 +16,8 @@ DATABASE_URL = f"postgresql+asyncpg://{POSTGRES_USER}:{POSTGRES_PASSWORD}@db:543
 # Cria o engine assíncrono
 engine = create_async_engine(DATABASE_URL, echo=True, poolclass=NullPool)
 
+async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
+
 # Configura a sessão assíncrona
 AsyncSessionLocal = sessionmaker(
     bind=engine,

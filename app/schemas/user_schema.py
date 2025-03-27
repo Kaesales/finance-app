@@ -4,7 +4,7 @@ from pydantic import BaseModel, EmailStr, SecretStr
 class UserCreate(BaseModel):
     username: str
     email: EmailStr
-    password: str  # Ou: `password: str = Field(..., exclude=True)`
+    password: str  
 
 # Schema de resposta (API → Cliente)
 class UserResponse(BaseModel):

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
-from ..schemas.user_schema import UserCreate, UserResponse
-from ..services.user_service import UserService
+from app.schemas.user_schema import UserCreate, UserResponse
+from app.services.user_service import UserService
 from dependencies.user import get_user_service
 
 router = APIRouter()
@@ -23,7 +23,11 @@ async def read_user(
     user_service: UserService = Depends(get_user_service)  # Injeção do UserService
 ):
     """Rota para buscar um usuário pelo nome de usuário."""
-    db_user = await user_service.get_user_by_username(username)  # Chamada assíncrona
-    if db_user is None:
-        raise HTTPException(status_code=404, detail="User not found")
-    return db_user
+    try:
+        db_user = await user_service.get_user_by_username(username)  # Chamada assíncrona
+        if db_user is None:
+            raise HTTPException(status_code=404, detail="User not found")
+        return db_user
+    except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+    
