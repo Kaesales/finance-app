@@ -10,10 +10,10 @@ class AccountRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def create(self, account: AccountCreate):
+    async def create(self, account: dict) -> Optional[Account]:
         """Cria uma conta que pode ser de débito ou crédito"""
         try:
-            db_account = Account(**account.model_dump()) 
+            db_account = Account(**account)
             self.db.add(db_account)
             await self.db.commit()
             await self.db.refresh(db_account)
@@ -27,7 +27,7 @@ class AccountRepository:
             logging.error(f"Erro inesperado ao criar conta: {e}")
             raise
         
-    async def get_by_id(self, account_id: int):
+    async def get_by_id(self, account_id: int) -> Optional[Account]:
         """Retorna uma conta a partir de um ID"""
         try:
             return await self.db.get(Account, account_id)
@@ -35,7 +35,7 @@ class AccountRepository:
             logging.error(f"Erro ao buscar conta {account_id}: {e}")
             raise
 
-    async def get_by_name_and_user(self, name: str, user_id: int):
+    async def get_by_name_and_user(self, name: str, user_id: int)->Optional[Account]:
         """Retorna uma conta com nome e user fornecidos"""
         try:
             result = await self.db.execute(
@@ -48,19 +48,22 @@ class AccountRepository:
             logging.error(f"Erro ao buscar conta por nome: {e}")
             raise
 
-    async def get_all_by_user(self, user_id: int):
+    async def get_all_by_user(self, user_id: int) -> List[Account]:
         """Retorna todas as contas referentes a um User"""
         try:
             result = await self.db.execute(
                 select(Account)
                 .where(Account.user_id == user_id)
             )
-            return result.scalars().all()
+            accounts = result.scalars().all()
+            if not accounts:
+                logging.warning(f"Nenhuma conta encontrada para o usuário {user_id}")
+            return accounts
         except SQLAlchemyError as e:
-            logging.error(f"Erro ao buscar contas do usuário {user_id}: {e}")
+            logging.error(f"Erro ao buscar contas do usuário {user_id}: {str(e)}")
             raise
-    
-    async def get_by_id_and_user(self, account_id, user_id):
+        
+    async def get_by_id_and_user(self, account_id, user_id)->List[Account]:
         """Retorna uma conta com ID e user fornecidos"""
         try:
             result = await self.db.execute(
@@ -73,7 +76,7 @@ class AccountRepository:
             logging.error(f"Erro ao buscar conta {account_id} do usuário {user_id}: {e}")
             raise
 
-    async def update(self, account_id, update_data: AccountUpdate):
+    async def update(self, account_id, update_data: AccountUpdate)->Optional[Account]:
         """Atualiza a conta de um User"""
         try:
             db_account = await self.db.get(Account, account_id)
@@ -93,7 +96,7 @@ class AccountRepository:
             logging.error(f"Erro ao atualizar conta {account_id}: {e}")
             raise
 
-    async def delete(self, account_id: int):
+    async def delete(self, account_id: int) -> bool:
         """Deleta a Conta de um User"""
         try:
             await self.db.execute(

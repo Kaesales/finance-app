@@ -189,3 +189,7 @@ pip-selfcheck.json
 
 /alembic/versions/*
 !/alembic/versions/__init__.py
+node_modules/
+.git/
+__pycache__/
+*.pyc

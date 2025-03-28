@@ -14,7 +14,7 @@ class AccountService:
     def __init__(self, account_repository: AccountRepository):
         self.repository = account_repository
 
-    async def create_account(self, account_data: AccountCreate, user_id: int):
+    async def create_account(self, account_data: AccountCreate, user_id: int) -> AccountResponse:
         """
         Cria nova conta com validações robustas
         - Verifica nome duplicado
@@ -22,9 +22,13 @@ class AccountService:
         - Trata erros do banco
         """
         try:
+            account_dict = account_data.model_dump()
+            account_dict["user_id"] = user_id
+
             # Verificação de nome duplicado
             if await self.repository.get_by_name_and_user(account_data.name, user_id):
                 raise ValueError("Já existe uma conta com este nome")
+            
 
             # Validação de campos para crédito
             if account_data.is_credit:
@@ -50,9 +54,8 @@ class AccountService:
                 if account_data.balance is None:
                     raise ValueError("Contas de débito precisam do campo balance")
 
-                    
-
-            return await self.repository.create(account_data)
+           
+            return await self.repository.create(account_dict)
 
         except ValueError as ve:
             logger.warning(f"Validação falhou: {str(ve)}")
@@ -80,7 +83,7 @@ class AccountService:
         self,
         account_id: int,
         update_data: AccountUpdate,
-    ):
+    )-> Tuple[bool, str, Optional[Account]]:
         """Atualiza uma conta existente"""
         account = await self.repository.get_by_id(account_id)
         if not account:
@@ -113,9 +116,11 @@ class AccountService:
                 
             updated_account = await self.repository.update(account_id, update_data)
             return True, "Conta atualizada com sucesso", updated_account
-        
+        except ValueError as e:
+            return False, f"Erro de validação: {str(e)}", None
+    
         except Exception as e:
-            return False, f"Erro ao atualizar conta: {str(e)}", {}, None
+            return False, f"Erro ao atualizar conta: {str(e)}", None
 
 
     async def delete_account(self, account_id: int, user_id: int) -> Tuple[bool, str]:
@@ -142,7 +147,9 @@ class AccountService:
     async def list_accounts(self, user_id: int) -> List[Account]:
         try:
             accounts = await self.repository.get_all_by_user(user_id)
+            if not accounts:
+                logging.warning(f"Nenhuma conta encontrada para o usuário {user_id}")
             return accounts
         except Exception as e:
-            logging.error(f"Erro ao listar contas: {str(e)}")
+            logging.error(f"Erro ao listar contas para o usuário {user_id}: {str(e)}")
             raise

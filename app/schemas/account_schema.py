@@ -39,6 +39,7 @@ class AccountCreate(BaseModel):
         description = "Saldo da Conta"
     )
 
+
     @field_validator('due_day')
     def validate_due_day(cls, v, values):
         if values.data.get('is_credit') and v is None:

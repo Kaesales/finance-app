@@ -99,11 +99,19 @@ async def list_accounts_user(
 ):
     """Rota para listar contas de um usuário"""
     try:  
-        return await account_service.list_accounts(current_user.id)
+        accounts = await account_service.list_accounts(current_user.id)
+        
+        if not accounts:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Nenhuma conta encontrada para este usuário"
+            )
+        return accounts
+    except HTTPException as e:
+        raise e
     except Exception as e:
+        logging.error(f"Erro inesperado ao listar contas: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro ao listar contas"
+            detail="Erro inesperado ao listar contas"
         )
-
-    
